@@ -15,6 +15,10 @@ ENV LANG en_US.UTF-8
 
 WORKDIR /
 
+# Env vars for the nvidia-container-runtime.
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES graphics,utility,compute
+
 #####################  GENERAL DEPENDENCIES  #########################
 #####################  INCLUDE OPENCVS DEPS  #########################
 RUN apt-get install -y --no-install-recommends \
@@ -57,29 +61,6 @@ RUN apt-get install -y --no-install-recommends \
     libdc1394-22-dev \
     libopenblas-dev && \
     rm -rf /var/lib/apt/lists/*
-
-#### gcc7 & g++7 #####################################################
-RUN apt-get update -y && \
-    apt-get upgrade -y && \
-    apt-get dist-upgrade -y && \
-    apt-get install build-essential software-properties-common -y && \
-    add-apt-repository ppa:ubuntu-toolchain-r/test -y && \
-    apt-get update -y && \
-    apt-get install gcc-7 g++-7 -y && \
-    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7 && \
-    update-alternatives --install /usr/bin/x86_64-linux-gnu-gcc x86_64-linux-gnu-gcc /usr/bin/x86_64-linux-gnu-gcc-7 60 && \
-    update-alternatives --config gcc
-    
-RUN wget -O ~/get-pip.py https://bootstrap.pypa.io/get-pip.py && \
-    python ~/get-pip.py
-
-### PYTHON 3.6 #######################################################
-RUN add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends python3.6 python3.6-dev
-
-RUN wget -O ~/get-pip.py https://bootstrap.pypa.io/get-pip.py && \
-    python3.6 ~/get-pip.py
 
 ### PYTORCH ##########################################################
 RUN pip --no-cache-dir install --upgrade \
@@ -138,9 +119,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
-# Env vars for the nvidia-container-runtime.
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES graphics,utility,compute
+
 
 # Setup users and groups
 RUN groupadd --gid ${GID} ${GROUP} \
