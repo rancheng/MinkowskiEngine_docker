@@ -1,4 +1,4 @@
-FROM scrin/dev-spconv
+FROM nvidia/cuda:11.0.3-cudnn8-devel-ubuntu18.04
 
 LABEL maintainer='ran.cheng2@mail.mcgill.ca' \
       version='v0.0.5' \
@@ -22,6 +22,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES graphics,utility,compute
 #####################  GENERAL DEPENDENCIES  #########################
 #####################  INCLUDE OPENCVS DEPS  #########################
 RUN apt-get install -y --no-install-recommends \
+    python3-dev \
     build-essential \
     cmake \
     openssh-server \
@@ -62,14 +63,35 @@ RUN apt-get install -y --no-install-recommends \
     libopenblas-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# Install packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget curl ssh \
+    zsh terminator gnome-terminal git vim tig \
+    dbus-x11 libglvnd0 libgl1 libglx0 libegl1 libxext6 libx11-6 ninja-build \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+
+### PYTHON 3.6 #######################################################
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends python3.6 python3.6-dev
+
+RUN wget -O ~/get-pip.py https://bootstrap.pypa.io/get-pip.py && \
+    python3.6 ~/get-pip.py && \
+    ln -s /usr/bin/python3.6 /usr/local/bin/python3 && \
+    ln -s /usr/bin/python3.6 /usr/local/bin/python
+
+### PYTHON LIBRARIES##################################################
+USER ${USER}
+
+#### OPENCV ##########################################################
+RUN pip install -U opencv-python opencv-contrib-python
+
 ### PYTORCH ##########################################################
 RUN pip --no-cache-dir install --upgrade \
-    torch==1.5.0 \
-    torchvision==0.6.0
+    torch==1.7.1 \
+    torchvision==0.8.2
 
-ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}/usr/local/cuda/extras/CUPTI/lib64
-
-### PYTHON ###########################################################
 RUN pip --no-cache-dir install --upgrade \
     setuptools && \
     pip --no-cache-dir install --upgrade \
@@ -101,8 +123,9 @@ RUN pip --no-cache-dir install --upgrade \
     hdbscan \
     torch-cluster==1.5.7
 
-#### OPENCV ##########################################################
-RUN pip install -U opencv-python opencv-contrib-python
+USER root
+
+ENV LD_LIBRARY_PATH ${LD_LIBRARY_PATH:+${LD_LIBRARY_PATH}:}/usr/local/cuda/extras/CUPTI/lib64
 
 # Arguments
 ARG USER=initial
@@ -110,16 +133,6 @@ ARG GROUP=initial
 ARG UID=1000
 ARG GID=${UID}
 ARG SHELL=/bin/bash
-
-# Install packages
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget curl ssh \
-    zsh terminator gnome-terminal git vim tig \
-    dbus-x11 libglvnd0 libgl1 libglx0 libegl1 libxext6 libx11-6 ninja-build \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/*
-
-
 
 # Setup users and groups
 RUN groupadd --gid ${GID} ${GROUP} \
@@ -133,7 +146,7 @@ RUN groupadd --gid ${GID} ${GROUP} \
 # setup terminator config
 RUN mkdir -p /home/${USER}/.config/terminator
 COPY config/terminator/config /home/${USER}/.config/terminator
-RUN sudo chown -R ${USER}:${GROUP} /home/${USER}/.config
+RUN chown -R ${USER}:${GROUP} /home/${USER}/.config
 
 # Switch to user's HOME folder
 WORKDIR /home/${USER}
@@ -142,8 +155,10 @@ WORKDIR /home/${USER}
 RUN git clone https://github.com/NVIDIA/MinkowskiEngine.git
 
 RUN cd /home/${USER}/MinkowskiEngine && \
-    git checkout v0.5.4 && \
-    python setup.py install
+    git checkout v0.5.4
+
+RUN cd /home/${USER}/MinkowskiEngine && \
+    python3 setup.py install
 
 # Make SSH available
 EXPOSE 1022

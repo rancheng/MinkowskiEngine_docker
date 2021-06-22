@@ -1,12 +1,4 @@
-#!/bin/bash
-
-file_dir=`dirname $0`
-
-# get parameter from system
-user=`id -un`
-group=`id -gn`
-uid=`id -u`
-gid=`id -g`
+ #!/bin/bash
 
 readonly SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE}")")
 
@@ -22,12 +14,4 @@ function build_args_proxy() {
     done
 }
 
-echo  
-
-# build docker images
-docker build $(build_args_proxy) -t ${user}/minkowski-engine-base \
-    --build-arg USER=${user} \
-    --build-arg UID=${uid} \
-    --build-arg GROUP=${group} \
-    --build-arg GID=${gid} \
-    ${file_dir}
+echo $(build_args_proxy) 
